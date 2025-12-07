@@ -35,13 +35,13 @@ const SetupScreen: React.FC = () => {
                 </div>
                 <h1 className="title-gradient" style={{ margin: '0 0 10px 0' }}>Christmas Exchange</h1>
                 <p style={{ color: 'var(--color-text-muted)', marginBottom: '30px' }}>
-                    Enter the number of participants/gifts to begin the activity.
+                    Enter the number of gifts to begin the activity.
                 </p>
 
                 <form onSubmit={handleSubmit}>
                     <div style={{ marginBottom: '20px' }}>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
-                            Number of Participants
+                            Number of Gifts
                         </label>
                         <input
                             type="number"

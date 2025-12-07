@@ -6,11 +6,9 @@ import QueueList from './QueueList';
 
 const GameControls: React.FC = () => {
     const {
-        currentTurnId, participants, rollDice, isRolling,
+        rollDice, isRolling,
         pendingEffect, resolveEffect, lastDiceRoll
     } = useGame();
-
-    const currentPlayer = participants.find(p => p.id === currentTurnId);
 
     // Auto-resolve Queue Draw
     useEffect(() => {
@@ -20,31 +18,25 @@ const GameControls: React.FC = () => {
             }, 1500);
             return () => clearTimeout(timer);
         }
-    }, [pendingEffect]);
+    }, [pendingEffect, resolveEffect]);
 
     return (
         <div className="controls-container">
-            <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-                <h2 className="title-gradient" style={{ margin: 0 }}>Current Turn</h2>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
-                    {currentPlayer ? currentPlayer.name : "Waiting..."}
-                </div>
-            </div>
-
             <div style={{
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
-                marginBottom: 'auto'
+                marginBottom: 'auto',
+                marginTop: '40px'
             }}>
 
                 {!pendingEffect && (
                     <button
                         className="btn-primary"
                         onClick={() => rollDice()}
-                        disabled={isRolling || !currentPlayer}
+                        disabled={isRolling}
                         style={{
                             width: '140px',
                             height: '140px',

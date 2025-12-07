@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useReducer, type ReactNode } from 'react';
-import type { GameState, Participant, Gift, TileType, GamePhase } from '../types/game';
+import { createContext, useContext, useReducer, type ReactNode } from 'react';
+import type { GameState, Gift, TileType } from '../types/game';
 import { generateBoard, BOARD_SIZE, shuffleArray } from '../utils/gameUtils';
 
 interface GameContextProps extends GameState {
-    startGame: (numParticipants: number) => void;
+    startGame: (numGifts: number) => void;
     rollDice: () => void;
     resolveEffect: (result?: any) => void;
     resetGame: () => void;
@@ -12,25 +12,22 @@ interface GameContextProps extends GameState {
 const GameContext = createContext<GameContextProps | undefined>(undefined);
 
 type Action =
-    | { type: 'START_GAME'; payload: { participants: Participant[]; gifts: Gift[]; giftQueue: number[] } }
+    | { type: 'START_GAME'; payload: { gifts: Gift[]; giftQueue: number[] } }
     | { type: 'ROLL_START' }
     | { type: 'ROLL_COMPLETE'; payload: { value: number } }
     | { type: 'MOVE_TOKEN'; payload: { position: number } }
     | { type: 'SET_PENDING_EFFECT'; payload: { effect: TileType | null } }
-    | { type: 'RESOLVE_TURN'; payload: { success: boolean } }
-    | { type: 'UPDATE_PLAYER_STATUS'; payload: { id: string; status: Participant['status']; giftId?: number } }
-    | { type: 'TAKE_GIFT'; payload: { giftId: number; ownerId: string } }
+    | { type: 'TAKE_GIFT'; payload: { giftId: number } }
     | { type: 'ADD_LOG'; payload: string }
     | { type: 'RESET_GAME' };
 
 const initialState: GameState = {
     phase: 'SETUP',
-    participants: [],
     gifts: [],
     board: generateBoard(),
     tokenPosition: 0,
-    currentTurnId: null,
     giftQueue: [],
+    givenGifts: [],
     logs: [],
     lastDiceRoll: null,
     isRolling: false,
@@ -43,10 +40,9 @@ const gameReducer = (state: GameState, action: Action): GameState => {
             return {
                 ...state,
                 phase: 'GAME',
-                participants: action.payload.participants,
                 gifts: action.payload.gifts,
                 giftQueue: action.payload.giftQueue,
-                currentTurnId: action.payload.participants[0]?.id || null,
+                givenGifts: [],
                 logs: [],
             };
         case 'ROLL_START':
@@ -57,53 +53,24 @@ const gameReducer = (state: GameState, action: Action): GameState => {
             return { ...state, tokenPosition: action.payload.position };
         case 'SET_PENDING_EFFECT':
             return { ...state, pendingEffect: action.payload.effect };
-        case 'UPDATE_PLAYER_STATUS':
-            return {
-                ...state,
-                participants: state.participants.map((p) =>
-                    p.id === action.payload.id
-                        ? { ...p, status: action.payload.status, giftId: action.payload.giftId }
-                        : p
-                ),
-            };
         case 'TAKE_GIFT': {
-            // Remove from giftQueue
-            const { giftId, ownerId } = action.payload;
+            const { giftId } = action.payload;
+            // Remove from giftQueue if present
             const newQueue = state.giftQueue.filter(id => id !== giftId);
+
+            // Add to givenGifts if not already there (though logic should prevent duplicates)
+            const newGivenGifts = [...state.givenGifts, giftId];
 
             return {
                 ...state,
                 giftQueue: newQueue,
+                givenGifts: newGivenGifts,
                 gifts: state.gifts.map((g) =>
                     g.id === giftId
-                        ? { ...g, status: 'taken', ownerId }
+                        ? { ...g, status: 'taken' }
                         : g
                 ),
-            };
-        }
-        case 'RESOLVE_TURN': {
-            const { currentTurnId, participants } = state;
-            const currentIdx = participants.findIndex(p => p.id === currentTurnId);
-            if (currentIdx === -1) return state;
-
-            const newParticipants = [...participants];
-            const currentP = newParticipants[currentIdx];
-
-            if (action.payload.success) {
-                // Already handled by assignGift -> status='done'
-            } else {
-                // Failure/Skip: Move to back of the line.
-                newParticipants.splice(currentIdx, 1);
-                newParticipants.push(currentP);
-            }
-
-            const nextPlayer = newParticipants.find(p => p.status === 'queue');
-
-            return {
-                ...state,
-                participants: newParticipants,
-                currentTurnId: nextPlayer ? nextPlayer.id : null,
-                pendingEffect: null,
+                pendingEffect: null, // Clear effect after taking gift
             };
         }
         case 'ADD_LOG':
@@ -118,17 +85,8 @@ const gameReducer = (state: GameState, action: Action): GameState => {
 export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [state, dispatch] = useReducer(gameReducer, initialState);
 
-    const startGame = (numParticipants: number) => {
-        const participants: Participant[] = Array.from({ length: numParticipants }, (_, i) => ({
-            id: `p-${i + 1}`,
-            name: `Player ${i + 1}`,
-            status: 'queue',
-        }));
-
-        // Shuffle initial queue
-        const shuffledParticipants = shuffleArray(participants);
-
-        const gifts: Gift[] = Array.from({ length: numParticipants }, (_, i) => ({
+    const startGame = (numGifts: number) => {
+        const gifts: Gift[] = Array.from({ length: numGifts }, (_, i) => ({
             id: i + 1,
             label: i + 1,
             status: 'pool',
@@ -138,34 +96,19 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
         dispatch({
             type: 'START_GAME',
-            payload: { participants: shuffledParticipants, gifts, giftQueue },
+            payload: { gifts, giftQueue },
         });
     };
 
-    const endTurn = (success: boolean) => {
-        dispatch({ type: 'RESOLVE_TURN', payload: { success } });
-    };
-
-    const assignGift = (playerId: string, giftId: number) => {
-        dispatch({
-            type: 'UPDATE_PLAYER_STATUS',
-            payload: { id: playerId, status: 'done', giftId }
-        });
+    const assignGift = (giftId: number) => {
         dispatch({
             type: 'TAKE_GIFT',
-            payload: { giftId, ownerId: playerId }
+            payload: { giftId }
         });
-        endTurn(true);
-    };
-
-    const handleTurnEnd = (gotGift: boolean) => {
-        if (!gotGift) {
-            endTurn(false);
-        }
     };
 
     const rollDice = async () => {
-        if (state.isRolling || !state.currentTurnId) return;
+        if (state.isRolling) return;
 
         dispatch({ type: 'ROLL_START' });
 
@@ -182,40 +125,37 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         const tile = state.board[newPos];
 
         if (tile.type === 'queue_draw') {
-            // Auto-resolve immediately
             dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: 'queue_draw' } });
-            // We need to trigger resolution. 
-            // We can't call resolveEffect here directly as it relies on closure state which is stale?
-            // Actually, resolveEffect uses state from closure.
-            // But render hasn't happened. 
-            // Let's use a timeout to allow render cycle? 
-            // Or better, let the UI trigger it via useEffect?
-            // Current GameControls logic triggers it? 
-            // We will make GameControls trigger it if pendingEffect is queue_draw.
         } else if (tile.type === 'skip') {
-            setTimeout(() => handleTurnEnd(false), 500);
+            // Just show a message or do nothing? 
+            // "Skip" might mean nothing happens in this mode.
+            // Let's just log it?
+            // Or maybe we treat it as "Next person" but since no people... just end turn.
+            // But we don't have "turns".
+            // So maybe just do nothing.
+            // The old logic had "handleTurnEnd" which rotated players.
+            // Here, simply nothing happens.
         } else {
             dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: tile.type } });
         }
     };
 
     const resolveEffect = (result?: any) => {
-        const { currentTurnId, pendingEffect, giftQueue, gifts } = state;
-        if (!currentTurnId) return;
+        const { pendingEffect, giftQueue } = state;
 
         if (pendingEffect === 'random') {
             const giftId = result as number;
             if (giftId) {
-                assignGift(currentTurnId, giftId);
+                assignGift(giftId);
             } else {
-                handleTurnEnd(false);
+                dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: null } });
             }
         } else if (pendingEffect === 'queue_draw') {
             if (giftQueue.length > 0) {
                 const giftId = giftQueue[0];
-                assignGift(currentTurnId, giftId);
+                assignGift(giftId);
             } else {
-                handleTurnEnd(false);
+                dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: null } });
             }
         } else if (pendingEffect === 'reroll') {
             dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: null } });
