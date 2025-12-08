@@ -101,52 +101,53 @@ const GameBoard: React.FC = () => {
 
                 {/* --- New Token Design --- */}
 
-                {/* 1. Highlighter Ring (Sits ON the tile) */}
+                {/* --- New Token Design (Grounded) --- */}
+
+                {/* Shadow (Moves with token) */}
                 <motion.div
                     animate={{
                         x: tokenPos.x,
-                        y: tokenPos.y
+                        y: tokenPos.y + 15
                     }}
                     transition={{ type: 'spring', stiffness: 60, damping: 15 }}
                     style={{
                         position: 'absolute',
                         top: '50%',
                         left: '50%',
-                        width: TILE_SIZE + 10,
-                        height: TILE_SIZE + 10,
-                        marginLeft: -(TILE_SIZE + 10) / 2,
-                        marginTop: -(TILE_SIZE + 10) / 2,
+                        width: 40,
+                        height: 10,
+                        marginLeft: -20,
+                        marginTop: -5,
                         borderRadius: '50%',
-                        border: '4px solid var(--color-primary)',
-                        boxShadow: '0 0 20px var(--color-primary)',
-                        zIndex: 2, // Above tiles
-                        pointerEvents: 'none'
+                        background: 'rgba(0,0,0,0.6)',
+                        filter: 'blur(4px)',
+                        zIndex: 2
                     }}
                 />
 
-                {/* 2. Snow Globe Token */}
+                {/* Snow Globe Token */}
                 <motion.div
                     animate={{
                         x: tokenPos.x,
-                        y: tokenPos.y - 40 // Float above
+                        y: tokenPos.y - 20 // Lower than before, more grounded
                     }}
                     transition={{ type: 'spring', stiffness: 60, damping: 15 }}
                     style={{
                         position: 'absolute',
                         top: '50%',
                         left: '50%',
-                        width: 50, // Slightly bigger base
+                        width: 50,
                         height: 60,
                         marginLeft: -25,
                         marginTop: -30,
                         zIndex: 10,
                     }}
                 >
-                    {/* Floating Animation Container */}
+                    {/* Floating Animation Container (Subtle Bob) */}
                     <motion.div
-                        animate={{ y: [0, -8, 0] }}
+                        animate={{ y: [0, -4, 0] }}
                         transition={{
-                            y: { repeat: Infinity, duration: 2.5, ease: "easeInOut" }
+                            y: { repeat: Infinity, duration: 3, ease: "easeInOut" }
                         }}
                         style={{ width: '100%', height: '100%', position: 'relative' }}
                     >

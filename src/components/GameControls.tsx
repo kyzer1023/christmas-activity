@@ -7,7 +7,7 @@ import Dice3D from './Dice3D';
 
 const GameControls: React.FC = () => {
     const {
-        rollDice, isRolling,
+        rollDice, isRolling, isMoving,
         pendingEffect, resolveEffect, lastDiceRoll
     } = useGame();
 
@@ -37,7 +37,7 @@ const GameControls: React.FC = () => {
                     <Dice3D
                         rolling={isRolling}
                         value={lastDiceRoll || 1}
-                        onRoll={() => !isRolling && !pendingEffect && rollDice()}
+                        onRoll={() => !isRolling && !pendingEffect && !isMoving && rollDice()}
                     />
                 </div>
 

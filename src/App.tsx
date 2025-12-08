@@ -4,6 +4,7 @@ import GameBoard from './components/GameBoard';
 import GameControls from './components/GameControls';
 import LeftPanel from './components/LeftPanel';
 import WheelModal from './components/WheelModal';
+import EndGameModal from './components/EndGameModal';
 import './App.css';
 
 const GameContainer = () => {
@@ -20,6 +21,7 @@ const GameContainer = () => {
         isOpen={pendingEffect === 'random'}
         onComplete={(giftId) => resolveEffect(giftId)}
       />
+      <EndGameModal />
 
       <LeftPanel />
       <GameBoard />

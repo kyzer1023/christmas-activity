@@ -31,6 +31,7 @@ const initialState: GameState = {
     logs: [],
     lastDiceRoll: null,
     isRolling: false,
+    isMoving: false,
     pendingEffect: null,
 };
 
@@ -46,19 +47,19 @@ const gameReducer = (state: GameState, action: Action): GameState => {
                 logs: [],
             };
         case 'ROLL_START':
-            return { ...state, isRolling: true };
+            return { ...state, isRolling: true, isMoving: true };
         case 'ROLL_COMPLETE':
             return { ...state, isRolling: false, lastDiceRoll: action.payload.value };
         case 'MOVE_TOKEN':
             return { ...state, tokenPosition: action.payload.position };
         case 'SET_PENDING_EFFECT':
-            return { ...state, pendingEffect: action.payload.effect };
+            // When effect is set, movement is done, but the turn isn't "over" until effect resolves.
+            // visual movement is done, so we can set isMoving to false, 
+            // BUT pendingEffect will block the roll button.
+            return { ...state, pendingEffect: action.payload.effect, isMoving: false };
         case 'TAKE_GIFT': {
             const { giftId } = action.payload;
-            // Remove from giftQueue if present
             const newQueue = state.giftQueue.filter(id => id !== giftId);
-
-            // Add to givenGifts if not already there (though logic should prevent duplicates)
             const newGivenGifts = [...state.givenGifts, giftId];
 
             return {
@@ -70,7 +71,8 @@ const gameReducer = (state: GameState, action: Action): GameState => {
                         ? { ...g, status: 'taken' }
                         : g
                 ),
-                pendingEffect: null, // Clear effect after taking gift
+                pendingEffect: null,
+                isMoving: false // Ensure cleared
             };
         }
         case 'ADD_LOG':
@@ -85,6 +87,7 @@ const gameReducer = (state: GameState, action: Action): GameState => {
 export const GameProvider = ({ children }: { children: ReactNode }) => {
     const [state, dispatch] = useReducer(gameReducer, initialState);
 
+    // ... (startGame logic remains same)
     const startGame = (numGifts: number) => {
         const gifts: Gift[] = Array.from({ length: numGifts }, (_, i) => ({
             id: i + 1,
@@ -108,7 +111,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const rollDice = async () => {
-        if (state.isRolling) return;
+        if (state.isRolling || state.isMoving || state.pendingEffect) return;
 
         dispatch({ type: 'ROLL_START' });
 
@@ -130,12 +133,21 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         if (tile.type === 'queue_draw') {
             dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: 'queue_draw' } });
         } else if (tile.type === 'skip') {
-            // Skip logic if needed
+            // Logic for skip?
+            // If we just end the turn here, we must clear isMoving.
+            // Currently no dispatch clears isMoving if we don't call SET_PENDING_EFFECT.
+            // Let's just set pendingEffect to null explicitly to clear isMoving?
+            // Or dispatch a specific 'TURN_END'?
+            // Re-using SET_PENDING_EFFECT with null works to clear isMoving/pendingEffect?
+            // But SET_PENDING_EFFECT logic in reducer sets pendingEffect = payload.
+            // So if we pass null, it clears it.
+            dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: null } });
         } else {
             dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: tile.type } });
         }
     };
 
+    // ... resolveEffect ... (no changes needed if we trust pendingEffect clears it)
     const resolveEffect = (result?: any) => {
         const { pendingEffect, giftQueue } = state;
 

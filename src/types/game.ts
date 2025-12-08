@@ -26,5 +26,6 @@ export interface GameState {
     logs: string[]; // Simple action logs
     lastDiceRoll: number | null;
     isRolling: boolean;
+    isMoving: boolean; // Token is moving or turn is processing
     pendingEffect: TileType | null; // If we need to show a modal for an effect
 }
