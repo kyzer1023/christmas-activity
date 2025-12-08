@@ -7,15 +7,15 @@ const LeftPanel: React.FC = () => {
     const { giftQueue, gifts } = useGame();
 
     return (
-        <div style={{
-            width: '250px',
-            background: 'rgba(20, 20, 20, 0.9)',
-            borderRight: '1px solid rgba(255,255,255,0.1)',
+        <div className="glass-panel" style={{
+            width: '280px',
+            height: 'calc(100vh - 40px)', // Padding compensation
+            margin: '20px',
+            borderRadius: 'var(--radius-xl)',
             display: 'flex',
             flexDirection: 'column',
-            padding: '20px',
-            boxShadow: '4px 0 10px rgba(0,0,0,0.5)',
-            overflowY: 'auto'
+            padding: '24px',
+            zIndex: 10
         }}>
             <h3 style={{
                 color: 'var(--color-gold)',
@@ -23,21 +23,24 @@ const LeftPanel: React.FC = () => {
                 marginBottom: '5px',
                 textTransform: 'uppercase',
                 fontSize: '0.9rem',
-                letterSpacing: '1px'
+                letterSpacing: '2px',
+                borderBottom: '1px solid rgba(255,215,0,0.3)',
+                paddingBottom: '10px'
             }}>
                 Gift Stack
             </h3>
-            <p style={{ color: '#666', fontSize: '0.75rem', marginBottom: '20px', fontStyle: 'italic' }}>
-                Predetermined Order (Base Logic)
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', marginBottom: '24px', fontStyle: 'italic' }}>
+                Next in Line
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, overflowY: 'auto' }}>
                 <AnimatePresence>
                     {giftQueue.length === 0 ? (
                         <div style={{ color: '#444', fontStyle: 'italic' }}>No gifts left in stack.</div>
                     ) : (
                         giftQueue.map((giftId, index) => {
                             const gift = gifts.find(g => g.id === giftId);
+                            const isNext = index === 0;
                             return (
                                 <motion.div
                                     key={giftId}
@@ -48,44 +51,36 @@ const LeftPanel: React.FC = () => {
                                     style={{
                                         display: 'flex',
                                         alignItems: 'center',
-                                        padding: '10px',
-                                        background: index === 0 ? 'rgba(255, 215, 0, 0.15)' : 'rgba(255,255,255,0.05)',
-                                        borderRadius: '8px',
-                                        border: index === 0 ? '1px solid rgba(255, 215, 0, 0.5)' : '1px solid transparent'
+                                        padding: '16px',
+                                        background: isNext ? 'linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent)' : 'rgba(255,255,255,0.03)',
+                                        borderRadius: '12px',
+                                        border: isNext ? '1px solid rgba(255, 215, 0, 0.3)' : '1px solid transparent',
+                                        boxShadow: isNext ? '0 0 15px rgba(255,215,0,0.05)' : 'none'
                                     }}
                                 >
                                     <div style={{
-                                        width: '24px',
-                                        height: '24px',
-                                        background: index === 0 ? 'var(--color-gold)' : '#333',
-                                        color: index === 0 ? 'black' : '#888',
+                                        width: '32px',
+                                        height: '32px',
+                                        background: isNext ? 'var(--color-gold)' : '#333',
+                                        color: isNext ? 'black' : '#888',
                                         borderRadius: '50%',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        fontSize: '0.8rem',
+                                        fontSize: '0.9rem',
                                         fontWeight: 'bold',
-                                        marginRight: '10px'
+                                        marginRight: '12px',
+                                        boxShadow: isNext ? '0 0 10px rgba(255,215,0,0.5)' : 'none'
                                     }}>
                                         {index + 1}
                                     </div>
-                                    <Gift size={16} color={index === 0 ? 'var(--color-gold)' : '#888'} style={{ marginRight: '8px' }} />
-                                    <span style={{ color: index === 0 ? 'white' : '#aaa', fontWeight: index === 0 ? 'bold' : 'normal' }}>
-                                        Gift #{gift?.label}
-                                    </span>
-                                    {index === 0 && (
-                                        <span style={{
-                                            marginLeft: 'auto',
-                                            fontSize: '0.6rem',
-                                            background: 'var(--color-gold)',
-                                            color: 'black',
-                                            padding: '2px 4px',
-                                            borderRadius: '4px',
-                                            fontWeight: 'bold'
-                                        }}>
-                                            NEXT
+                                    <Gift size={20} color={isNext ? 'var(--color-gold)' : '#666'} style={{ marginRight: '12px' }} />
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span style={{ color: isNext ? 'white' : '#aaa', fontWeight: isNext ? 'bold' : 'normal', fontSize: '0.9rem' }}>
+                                            Gift #{gift?.label}
                                         </span>
-                                    )}
+                                        {isNext && <span style={{ fontSize: '0.6rem', color: 'var(--color-gold)', textTransform: 'uppercase', letterSpacing: '1px' }}>Current Target</span>}
+                                    </div>
                                 </motion.div>
                             );
                         })

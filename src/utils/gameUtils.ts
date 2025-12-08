@@ -8,9 +8,9 @@ export const BOARD_SIZE = 12;
 // "reroll, queue draw, skip and reroll" -> User likely meant Random.
 // Let's assume 3 of each: Skip, Random, Reroll, Queue Draw.
 const TILE_PATTERN: TileType[] = [
-    'queue_draw', 'random', 'skip', 'reroll',
-    'queue_draw', 'random', 'skip', 'reroll',
-    'queue_draw', 'random', 'skip', 'reroll'
+    'skip', 'random', 'queue_draw', 'reroll',
+    'skip', 'random', 'queue_draw', 'reroll',
+    'skip', 'random', 'queue_draw', 'reroll'
 ];
 
 export const generateBoard = (): Tile[] => {

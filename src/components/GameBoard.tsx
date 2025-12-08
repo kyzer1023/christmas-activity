@@ -1,221 +1,47 @@
 import React from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Stars, Environment, PerspectiveCamera } from '@react-three/drei';
 import { useGame } from '../context/GameContext';
-import { motion } from 'framer-motion';
-import { BOARD_SIZE } from '../utils/gameUtils';
-import { Star, RefreshCw, Shuffle, List } from 'lucide-react';
-
-const RADIUS = 280; // Increased radius
-const TILE_SIZE = 70; // Bigger tiles
-
-const getPosition = (index: number) => {
-    const angle = (index / BOARD_SIZE) * 2 * Math.PI - Math.PI / 2;
-    const x = RADIUS * Math.cos(angle);
-    const y = RADIUS * Math.sin(angle);
-    return { x, y };
-};
-
-const TileIcon = ({ type }: { type: string }) => {
-    switch (type) {
-        case 'skip': return <Star size={32} color="#888" />;
-        case 'random': return <Shuffle size={32} color="var(--color-gold)" />;
-        case 'reroll': return <RefreshCw size={32} color="#4ade80" />;
-        case 'queue_draw': return <List size={32} color="#60a5fa" />;
-        default: return null;
-    }
-};
+import ThreeBoard from './ThreeBoard';
+import Legend from './Legend';
 
 const GameBoard: React.FC = () => {
     const { board, tokenPosition } = useGame();
 
-    const tokenPos = getPosition(tokenPosition);
-
     return (
-        <div className="board-container" style={{ position: 'relative' }}>
-            {/* Background Wheel Effect */}
-            <div style={{
-                position: 'absolute',
-                width: RADIUS * 2 + 100,
-                height: RADIUS * 2 + 100,
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.03)',
-                border: '2px solid rgba(255,255,255,0.05)',
-                zIndex: 0
-            }} />
+        <div className="board-container" style={{ position: 'relative', width: '100%', height: '100%' }}>
+            {/* Legend Overlay */}
+            <Legend />
 
-            <div
-                style={{
-                    width: RADIUS * 2.2,
-                    height: RADIUS * 2.2,
-                    position: 'relative',
-                }}
-            >
-                {board.map((tile) => {
-                    const { x, y } = getPosition(tile.index);
-                    // Rotate tile to match circle angle
-                    const angleDeg = (tile.index / BOARD_SIZE) * 360;
+            <Canvas shadows className="game-canvas">
+                {/* 
+                  Camera Position Update: 
+                  Current: [0, 8, 12] -> too flat, too big.
+                  New: [0, 18, 14] 
+                  - Increased Y (18) for steeper angle.
+                  - Increased Z (14) to "zoom out" slightly so it fits better without overlapping.
+                */}
+                <PerspectiveCamera makeDefault position={[0, 18, 14]} fov={40} />
+                {/* 
+                   Locked Interaction: 
+                   We remove OrbitControls or set it to disabled. 
+                   The user said "cant be moved or the POV cant be change at all anymore".
+                   So we simply DO NOT render OrbitControls, or render it with enabled={false}.
+                */}
+                <OrbitControls enabled={false} />
 
-                    return (
-                        <div
-                            key={tile.id}
-                            style={{
-                                position: 'absolute',
-                                top: '50%',
-                                left: '50%',
-                                width: TILE_SIZE,
-                                height: TILE_SIZE,
-                                marginLeft: -TILE_SIZE / 2,
-                                marginTop: -TILE_SIZE / 2,
-                                transform: `translate(${x}px, ${y}px) rotate(${angleDeg}deg)`,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                zIndex: 1
-                            }}
-                        >
-                            <div style={{
-                                width: TILE_SIZE, height: TILE_SIZE,
-                                borderRadius: '50%',
-                                background: '#222',
-                                border: '2px solid #555',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                boxShadow: '0 4px 6px rgba(0,0,0,0.5)'
-                            }}>
-                                <TileIcon type={tile.type} />
-                            </div>
-                            <span style={{
-                                marginTop: '5px',
-                                fontSize: '11px',
-                                textTransform: 'uppercase',
-                                color: '#888',
-                                fontWeight: 'bold',
-                                textShadow: '0 2px 2px black',
-                                textAlign: 'center',
-                                maxWidth: '80px'
-                            }}>
-                                {tile.type.replace('_', ' ')}
-                            </span>
-                        </div>
-                    );
-                })}
+                {/* Lighting */}
+                <ambientLight intensity={0.2} />
+                <pointLight position={[10, 10, 10]} intensity={1.5} color="#ffd700" castShadow />
+                <pointLight position={[-10, 10, -10]} intensity={1} color="#ff0000" />
 
-                {/* --- New Token Design --- */}
+                {/* Environment & Background */}
+                <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+                <Environment preset="night" blur={0.6} />
 
-                {/* --- New Token Design (Grounded) --- */}
-
-                {/* Shadow (Moves with token) */}
-                <motion.div
-                    animate={{
-                        x: tokenPos.x,
-                        y: tokenPos.y + 15
-                    }}
-                    transition={{ type: 'spring', stiffness: 60, damping: 15 }}
-                    style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        width: 40,
-                        height: 10,
-                        marginLeft: -20,
-                        marginTop: -5,
-                        borderRadius: '50%',
-                        background: 'rgba(0,0,0,0.6)',
-                        filter: 'blur(4px)',
-                        zIndex: 2
-                    }}
-                />
-
-                {/* Snow Globe Token */}
-                <motion.div
-                    animate={{
-                        x: tokenPos.x,
-                        y: tokenPos.y - 20 // Lower than before, more grounded
-                    }}
-                    transition={{ type: 'spring', stiffness: 60, damping: 15 }}
-                    style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        width: 50,
-                        height: 60,
-                        marginLeft: -25,
-                        marginTop: -30,
-                        zIndex: 10,
-                    }}
-                >
-                    {/* Floating Animation Container (Subtle Bob) */}
-                    <motion.div
-                        animate={{ y: [0, -4, 0] }}
-                        transition={{
-                            y: { repeat: Infinity, duration: 3, ease: "easeInOut" }
-                        }}
-                        style={{ width: '100%', height: '100%', position: 'relative' }}
-                    >
-                        {/* Globe Glass */}
-                        <div style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: '50%',
-                            background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), rgba(255,255,255,0.1) 60%, rgba(255,255,255,0.05))',
-                            border: '1px solid rgba(255,255,255,0.3)',
-                            boxShadow: '0 0 10px rgba(255,255,255,0.2), inset 0 0 10px rgba(255,255,255,0.2)',
-                            position: 'absolute',
-                            top: 0,
-                            left: 5,
-                            overflow: 'hidden'
-                        }}>
-                            {/* Snow Particles */}
-                            <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
-                                style={{
-                                    width: '100%', height: '100%', position: 'absolute',
-                                    backgroundImage: 'radial-gradient(white 1px, transparent 1px), radial-gradient(white 1px, transparent 1px)',
-                                    backgroundSize: '10px 10px',
-                                    backgroundPosition: '0 0, 5px 5px',
-                                    opacity: 0.8
-                                }}
-                            />
-                        </div>
-
-                        {/* Base */}
-                        <div style={{
-                            width: 36,
-                            height: 12,
-                            background: 'linear-gradient(to right, #b8860b, #ffd700, #b8860b)',
-                            borderRadius: '4px',
-                            position: 'absolute',
-                            bottom: 5,
-                            left: 7,
-                            boxShadow: '0 4px 5px rgba(0,0,0,0.5)'
-                        }} />
-                    </motion.div>
-                </motion.div>
-
-                {/* Center */}
-                <div style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    textAlign: 'center',
-                    zIndex: 5
-                }}>
-                    <div style={{
-                        width: 150, height: 150,
-                        borderRadius: '50%',
-                        background: 'radial-gradient(circle, #2a2a2a 0%, #111 100%)',
-                        border: '4px solid #333',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 0 20px rgba(0,0,0,0.8)'
-                    }}>
-                        <div>
-                            <h2 className="title-gradient" style={{ fontSize: '2rem', margin: 0 }}>XMAS</h2>
-                            <div style={{ color: '#555', fontSize: '0.8rem' }}>Partayyy</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                {/* Game Board */}
+                <ThreeBoard board={board} tokenPosition={tokenPosition} />
+            </Canvas>
         </div>
     );
 };

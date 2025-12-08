@@ -58,6 +58,7 @@ const gameReducer = (state: GameState, action: Action): GameState => {
             // BUT pendingEffect will block the roll button.
             return { ...state, pendingEffect: action.payload.effect, isMoving: false };
         case 'TAKE_GIFT': {
+            console.log('Reducer: TAKE_GIFT', action.payload);
             const { giftId } = action.payload;
             const newQueue = state.giftQueue.filter(id => id !== giftId);
             const newGivenGifts = [...state.givenGifts, giftId];
@@ -130,18 +131,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
         const tile = state.board[newPos];
 
-        if (tile.type === 'queue_draw') {
-            dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: 'queue_draw' } });
-        } else if (tile.type === 'skip') {
-            // Logic for skip?
-            // If we just end the turn here, we must clear isMoving.
-            // Currently no dispatch clears isMoving if we don't call SET_PENDING_EFFECT.
-            // Let's just set pendingEffect to null explicitly to clear isMoving?
-            // Or dispatch a specific 'TURN_END'?
-            // Re-using SET_PENDING_EFFECT with null works to clear isMoving/pendingEffect?
-            // But SET_PENDING_EFFECT logic in reducer sets pendingEffect = payload.
-            // So if we pass null, it clears it.
+        if (tile.type === 'skip') {
+            // Red tile - skip turn (do nothing, just end turn)
             dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: null } });
+        } else if (tile.type === 'queue_draw') {
+            // Blue tile - draw from queue
+            dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: 'queue_draw' } });
         } else {
             dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: tile.type } });
         }
@@ -159,10 +154,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
                 dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: null } });
             }
         } else if (pendingEffect === 'queue_draw') {
+            console.log('Resolving queue_draw. Current queue:', giftQueue);
             if (giftQueue.length > 0) {
                 const giftId = giftQueue[0];
+                console.log('Assigning giftId:', giftId);
                 assignGift(giftId);
             } else {
+                console.log('Queue empty!');
                 dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: null } });
             }
         } else if (pendingEffect === 'reroll') {

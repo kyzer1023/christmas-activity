@@ -8,6 +8,7 @@ const QueueList: React.FC = () => {
 
     // Auto-scroll to bottom when a new gift is added
     useEffect(() => {
+        console.log('QueueList: givenGifts updated:', givenGifts);
         if (listRef.current) {
             listRef.current.scrollTop = listRef.current.scrollHeight;
         }

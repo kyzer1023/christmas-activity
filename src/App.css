@@ -3,26 +3,31 @@
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+  background: transparent;
+  /* Handled by body */
 }
 
 .board-container {
-  flex: 2;
+  flex: 1;
+  /* Center stage takes available space */
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
+  /* Ensure canvas can fill this */
+  height: 100%;
+  width: 100%;
 }
 
 .controls-container {
-  flex: 1;
-  background: rgba(30, 30, 30, 0.5);
-  backdrop-filter: blur(10px);
-  padding: 20px;
+  width: 320px;
+  /* Fixed width sidebar */
+  height: 100vh;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  overflow-y: auto;
+  z-index: 10;
+  /* Glassmorphism applied via component styles or .glass-panel utility */
 }
 
 /* --- 3D Dice Styles --- */
