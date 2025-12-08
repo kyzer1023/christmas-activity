@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { motion } from 'framer-motion';
-import { Dices, RefreshCw, Gift } from 'lucide-react';
+import { RefreshCw, Gift } from 'lucide-react';
 import QueueList from './QueueList';
+import Dice3D from './Dice3D';
 
 const GameControls: React.FC = () => {
     const {
@@ -32,42 +33,29 @@ const GameControls: React.FC = () => {
                 marginTop: '40px'
             }}>
 
-                {!pendingEffect && (
-                    <button
-                        className="btn-primary"
-                        onClick={() => rollDice()}
-                        disabled={isRolling}
-                        style={{
-                            width: '140px',
-                            height: '140px',
-                            borderRadius: '50%',
-                            fontSize: '1.4rem',
-                            boxShadow: '0 0 30px rgba(212, 36, 38, 0.4)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            border: '4px solid findViewById'
-                        }}
-                    >
-                        {isRolling ? (
-                            <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ repeat: Infinity, duration: 0.5 }}
-                            >
-                                <Dices size={50} />
-                            </motion.div>
-                        ) : (
-                            <>
-                                <Dices size={50} style={{ marginBottom: 10 }} />
-                                ROLL
-                            </>
-                        )}
-                    </button>
+                <div style={{ marginBottom: '40px' }}>
+                    <Dice3D
+                        rolling={isRolling}
+                        value={lastDiceRoll || 1}
+                        onRoll={() => !isRolling && !pendingEffect && rollDice()}
+                    />
+                </div>
+
+                {/* Helper Text */}
+                {!isRolling && !pendingEffect && (
+                    <div style={{
+                        color: '#888',
+                        marginTop: '10px',
+                        fontSize: '0.9rem',
+                        letterSpacing: '1px'
+                    }}>
+                        CLICK DIE TO ROLL
+                    </div>
                 )}
 
+
                 {pendingEffect === 'queue_draw' && (
-                    <div style={{ textAlign: 'center' }}>
+                    <div style={{ textAlign: 'center', marginTop: '20px' }}>
                         <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1.2 }}
@@ -82,7 +70,7 @@ const GameControls: React.FC = () => {
                 )}
 
                 {pendingEffect === 'reroll' && (
-                    <div style={{ textAlign: 'center' }}>
+                    <div style={{ textAlign: 'center', marginTop: '20px' }}>
                         <h3>Reroll!</h3>
                         <motion.div
                             animate={{ rotate: [0, 10, -10, 0] }}
@@ -99,8 +87,8 @@ const GameControls: React.FC = () => {
 
                 {/* Dice Result Display */}
                 {!isRolling && lastDiceRoll && !pendingEffect && (
-                    <div style={{ marginTop: '30px', fontSize: '1.5rem', color: '#888' }}>
-                        Last Roll: <span style={{ color: 'white', fontWeight: 'bold' }}>{lastDiceRoll}</span>
+                    <div style={{ marginTop: '20px', fontSize: '1.5rem', color: '#888' }}>
+                        Result: <span style={{ color: 'white', fontWeight: 'bold' }}>{lastDiceRoll}</span>
                     </div>
                 )}
             </div>

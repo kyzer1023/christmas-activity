@@ -122,19 +122,15 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         await new Promise(resolve => setTimeout(resolve, 500));
         dispatch({ type: 'MOVE_TOKEN', payload: { position: newPos } });
 
+        // Wait for token animation to arrive before triggering effect
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
         const tile = state.board[newPos];
 
         if (tile.type === 'queue_draw') {
             dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: 'queue_draw' } });
         } else if (tile.type === 'skip') {
-            // Just show a message or do nothing? 
-            // "Skip" might mean nothing happens in this mode.
-            // Let's just log it?
-            // Or maybe we treat it as "Next person" but since no people... just end turn.
-            // But we don't have "turns".
-            // So maybe just do nothing.
-            // The old logic had "handleTurnEnd" which rotated players.
-            // Here, simply nothing happens.
+            // Skip logic if needed
         } else {
             dispatch({ type: 'SET_PENDING_EFFECT', payload: { effect: tile.type } });
         }
