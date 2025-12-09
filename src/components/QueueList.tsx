@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
-import { Gift } from 'lucide-react';
+import { Gift, CheckCircle } from 'lucide-react';
 
 const QueueList: React.FC = () => {
     const { givenGifts, gifts } = useGame();
@@ -21,52 +21,98 @@ const QueueList: React.FC = () => {
                 marginTop: '20px',
                 flex: 1,
                 overflowY: 'auto',
-                paddingRight: '4px' // prevent scrollbar overlap
+                paddingRight: '4px'
             }}
         >
-            <h3 style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', textTransform: 'uppercase' }}>Gift Log ({givenGifts.length})</h3>
-            <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '8px' }}>
-                {/* using column-reverse or just normal mapping? 
-                    "Chronological" usually means oldest top, newest bottom?
-                    Or Newest top? 
-                    User asked: "show the gifts that were given out in chronogical order"
-                    Usually means 1st, 2nd, 3rd... so oldest at top.
-                    But scrolling to bottom makes sense for a log.
-                    Let's stick to standard order.
-                */}
+            {/* Header */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '12px'
+            }}>
+                <CheckCircle size={14} color="var(--christmas-green-light)" />
+                <h3 style={{ 
+                    color: 'var(--text-secondary)', 
+                    fontSize: '0.85rem', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '1.5px',
+                    margin: 0,
+                    fontWeight: 600
+                }}>
+                    Gift Log
+                </h3>
+                <span style={{
+                    background: 'rgba(22, 91, 51, 0.2)',
+                    color: 'var(--christmas-green-light)',
+                    padding: '2px 8px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.7rem',
+                    fontWeight: 600
+                }}>
+                    {givenGifts.length}
+                </span>
+            </div>
 
-                {givenGifts.length === 0 && <div style={{ color: '#555', fontStyle: 'italic' }}>No gifts given yet.</div>}
+            <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '8px' }}>
+                {givenGifts.length === 0 && (
+                    <div style={{ 
+                        color: 'var(--text-muted)', 
+                        fontStyle: 'italic',
+                        textAlign: 'center',
+                        padding: '16px',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px dashed rgba(255, 255, 255, 0.08)',
+                        fontSize: '0.85rem'
+                    }}>
+                        No gifts given yet.
+                    </div>
+                )}
 
                 {givenGifts.map((giftId, index) => {
                     const gift = gifts.find(g => g.id === giftId);
                     if (!gift) return null;
                     return (
                         <div key={`${gift.id}-${index}`} style={{
-                            padding: '10px',
-                            background: 'rgba(255,215,0,0.05)',
-                            borderRadius: '6px',
-                            border: '1px solid rgba(255,215,0,0.1)',
+                            padding: '10px 12px',
+                            background: 'linear-gradient(90deg, rgba(22, 91, 51, 0.08) 0%, transparent 100%)',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid rgba(22, 91, 51, 0.15)',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '10px'
+                            gap: '10px',
+                            transition: 'all 0.2s ease'
                         }}>
+                            {/* Index Badge */}
                             <div style={{
-                                width: '24px',
-                                height: '24px',
+                                width: '22px',
+                                height: '22px',
                                 borderRadius: '50%',
-                                background: '#222',
+                                background: 'var(--bg-elevated)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '0.75rem',
-                                color: '#aaa',
-                                border: '1px solid #333'
+                                fontSize: '0.7rem',
+                                color: 'var(--text-muted)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                fontWeight: 600
                             }}>
                                 {index + 1}
                             </div>
-                            <Gift size={16} color="gold" />
+                            
+                            {/* Gift Icon */}
+                            <Gift size={14} color="var(--christmas-green-light)" />
+                            
+                            {/* Gift Label */}
                             <div>
-                                <div style={{ color: 'var(--color-gold)', fontWeight: 'bold' }}>Gift #{gift.label}</div>
+                                <span style={{ 
+                                    color: 'var(--christmas-gold)', 
+                                    fontWeight: 600,
+                                    fontSize: '0.85rem'
+                                }}>
+                                    Gift #{gift.label}
+                                </span>
                             </div>
                         </div>
                     );

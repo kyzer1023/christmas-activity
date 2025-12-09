@@ -1,7 +1,7 @@
 import React from 'react';
 import { useGame } from '../context/GameContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gift } from 'lucide-react';
+import { Gift, Sparkles } from 'lucide-react';
 
 const LeftPanel: React.FC = () => {
     const { giftQueue, gifts } = useGame();
@@ -9,34 +9,74 @@ const LeftPanel: React.FC = () => {
     return (
         <div className="glass-panel" style={{
             width: '280px',
-            height: 'calc(100vh - 40px)', // Padding compensation
+            height: 'calc(100vh - 40px)',
             margin: '20px',
             borderRadius: 'var(--radius-xl)',
             display: 'flex',
             flexDirection: 'column',
             padding: '24px',
-            zIndex: 10
+            zIndex: 10,
+            background: 'linear-gradient(180deg, rgba(18, 18, 32, 0.9) 0%, rgba(12, 12, 24, 0.95) 100%)',
+            border: '1px solid rgba(212, 175, 55, 0.12)',
+            boxShadow: '0 8px 40px rgba(0, 0, 0, 0.4)'
         }}>
-            <h3 style={{
-                color: 'var(--color-gold)',
-                marginTop: 0,
-                marginBottom: '5px',
-                textTransform: 'uppercase',
-                fontSize: '0.9rem',
-                letterSpacing: '2px',
-                borderBottom: '1px solid rgba(255,215,0,0.3)',
-                paddingBottom: '10px'
+            {/* Header */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginBottom: '8px',
+                paddingBottom: '12px',
+                borderBottom: '1px solid rgba(212, 175, 55, 0.15)'
             }}>
-                Gift Stack
-            </h3>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', marginBottom: '24px', fontStyle: 'italic' }}>
+                <Sparkles size={16} color="var(--christmas-gold)" />
+                <h3 style={{
+                    color: 'var(--christmas-gold)',
+                    margin: 0,
+                    textTransform: 'uppercase',
+                    fontSize: '0.85rem',
+                    letterSpacing: '2px',
+                    fontWeight: 600
+                }}>
+                    Gift Stack
+                </h3>
+            </div>
+            
+            <p style={{ 
+                color: 'var(--text-muted)', 
+                fontSize: '0.72rem', 
+                marginBottom: '20px', 
+                fontStyle: 'italic',
+                letterSpacing: '0.5px'
+            }}>
                 Next in Line
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, overflowY: 'auto' }}>
+            <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '10px', 
+                flex: 1, 
+                overflowY: 'auto',
+                paddingRight: '4px'
+            }}>
                 <AnimatePresence>
                     {giftQueue.length === 0 ? (
-                        <div style={{ color: '#444', fontStyle: 'italic' }}>No gifts left in stack.</div>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            style={{ 
+                                color: 'var(--text-muted)', 
+                                fontStyle: 'italic',
+                                textAlign: 'center',
+                                padding: '20px',
+                                background: 'rgba(255, 255, 255, 0.02)',
+                                borderRadius: 'var(--radius-md)',
+                                border: '1px dashed rgba(255, 255, 255, 0.1)'
+                            }}
+                        >
+                            No gifts left in stack.
+                        </motion.div>
                     ) : (
                         giftQueue.map((giftId, index) => {
                             const gift = gifts.find(g => g.id === giftId);
@@ -51,35 +91,71 @@ const LeftPanel: React.FC = () => {
                                     style={{
                                         display: 'flex',
                                         alignItems: 'center',
-                                        padding: '16px',
-                                        background: isNext ? 'linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent)' : 'rgba(255,255,255,0.03)',
-                                        borderRadius: '12px',
-                                        border: isNext ? '1px solid rgba(255, 215, 0, 0.3)' : '1px solid transparent',
-                                        boxShadow: isNext ? '0 0 15px rgba(255,215,0,0.05)' : 'none'
+                                        padding: '14px 16px',
+                                        background: isNext 
+                                            ? 'linear-gradient(90deg, rgba(212, 175, 55, 0.12) 0%, rgba(212, 175, 55, 0.02) 100%)' 
+                                            : 'rgba(255, 255, 255, 0.02)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: isNext 
+                                            ? '1px solid rgba(212, 175, 55, 0.25)' 
+                                            : '1px solid rgba(255, 255, 255, 0.05)',
+                                        boxShadow: isNext 
+                                            ? '0 0 20px rgba(212, 175, 55, 0.08)' 
+                                            : 'none',
+                                        transition: 'all 0.3s ease'
                                     }}
                                 >
+                                    {/* Position Badge */}
                                     <div style={{
                                         width: '32px',
                                         height: '32px',
-                                        background: isNext ? 'var(--color-gold)' : '#333',
-                                        color: isNext ? 'black' : '#888',
+                                        background: isNext 
+                                            ? 'linear-gradient(135deg, var(--christmas-gold-light), var(--christmas-gold))' 
+                                            : 'var(--bg-elevated)',
+                                        color: isNext ? 'var(--bg-dark)' : 'var(--text-muted)',
                                         borderRadius: '50%',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        fontSize: '0.9rem',
-                                        fontWeight: 'bold',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 700,
                                         marginRight: '12px',
-                                        boxShadow: isNext ? '0 0 10px rgba(255,215,0,0.5)' : 'none'
+                                        boxShadow: isNext 
+                                            ? '0 0 15px rgba(212, 175, 55, 0.4)' 
+                                            : 'inset 0 1px 3px rgba(0, 0, 0, 0.3)',
+                                        border: isNext ? 'none' : '1px solid rgba(255, 255, 255, 0.08)'
                                     }}>
                                         {index + 1}
                                     </div>
-                                    <Gift size={20} color={isNext ? 'var(--color-gold)' : '#666'} style={{ marginRight: '12px' }} />
+                                    
+                                    {/* Gift Icon */}
+                                    <Gift 
+                                        size={18} 
+                                        color={isNext ? 'var(--christmas-gold)' : 'var(--text-muted)'} 
+                                        style={{ marginRight: '12px' }} 
+                                    />
+                                    
+                                    {/* Gift Info */}
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ color: isNext ? 'white' : '#aaa', fontWeight: isNext ? 'bold' : 'normal', fontSize: '0.9rem' }}>
+                                        <span style={{ 
+                                            color: isNext ? 'var(--text-primary)' : 'var(--text-secondary)', 
+                                            fontWeight: isNext ? 600 : 400, 
+                                            fontSize: '0.9rem' 
+                                        }}>
                                             Gift #{gift?.label}
                                         </span>
-                                        {isNext && <span style={{ fontSize: '0.6rem', color: 'var(--color-gold)', textTransform: 'uppercase', letterSpacing: '1px' }}>Current Target</span>}
+                                        {isNext && (
+                                            <span style={{ 
+                                                fontSize: '0.6rem', 
+                                                color: 'var(--christmas-gold)', 
+                                                textTransform: 'uppercase', 
+                                                letterSpacing: '1px',
+                                                fontWeight: 600,
+                                                marginTop: '2px'
+                                            }}>
+                                                Current Target
+                                            </span>
+                                        )}
                                     </div>
                                 </motion.div>
                             );
