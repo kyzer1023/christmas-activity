@@ -307,41 +307,54 @@ const MiniSnowman: React.FC = () => {
     );
 };
 
-// Snow particles inside the globe
+// Snow particles inside the globe - continuous falling animation
 const SnowParticles: React.FC = () => {
     const particlesRef = useRef<THREE.Points>(null);
+    const speedsRef = useRef<Float32Array | null>(null);
     
     const particles = useMemo(() => {
-        const count = 50;
+        const count = 80;
         const positions = new Float32Array(count * 3);
+        const speeds = new Float32Array(count);
         
         for (let i = 0; i < count; i++) {
-            // Random positions within a larger sphere
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
-            const r = Math.random() * 0.7;
+            // Random positions within the globe
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.random() * 0.6;
             
-            positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-            positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) + 0.8;
-            positions[i * 3 + 2] = r * Math.cos(phi);
+            positions[i * 3] = Math.cos(angle) * radius;
+            positions[i * 3 + 1] = Math.random() * 1.2 + 0.3; // Height from 0.3 to 1.5
+            positions[i * 3 + 2] = Math.sin(angle) * radius;
+            
+            speeds[i] = 0.008 + Math.random() * 0.012; // Variable fall speeds
         }
         
+        speedsRef.current = speeds;
         return positions;
     }, []);
     
     useFrame((state) => {
-        if (particlesRef.current) {
+        if (particlesRef.current && speedsRef.current) {
             const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
+            const speeds = speedsRef.current;
             const count = positions.length / 3;
+            const time = state.clock.elapsedTime;
             
             for (let i = 0; i < count; i++) {
-                // Gentle floating motion
-                positions[i * 3 + 1] -= 0.003;
-                positions[i * 3] += Math.sin(state.clock.elapsedTime + i) * 0.0015;
+                // Continuous falling
+                positions[i * 3 + 1] -= speeds[i];
                 
-                // Reset when too low
-                if (positions[i * 3 + 1] < 0.3) {
-                    positions[i * 3 + 1] = 1.5;
+                // Gentle swaying motion
+                positions[i * 3] += Math.sin(time * 2 + i * 0.5) * 0.002;
+                positions[i * 3 + 2] += Math.cos(time * 1.5 + i * 0.3) * 0.001;
+                
+                // Reset to top when reaching bottom
+                if (positions[i * 3 + 1] < 0.25) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = Math.random() * 0.55;
+                    positions[i * 3] = Math.cos(angle) * radius;
+                    positions[i * 3 + 1] = 1.4 + Math.random() * 0.2;
+                    positions[i * 3 + 2] = Math.sin(angle) * radius;
                 }
             }
             
@@ -358,10 +371,10 @@ const SnowParticles: React.FC = () => {
                 />
             </bufferGeometry>
             <pointsMaterial
-                size={0.035}
+                size={0.04}
                 color="#ffffff"
                 transparent
-                opacity={0.85}
+                opacity={0.9}
                 sizeAttenuation
             />
         </points>
