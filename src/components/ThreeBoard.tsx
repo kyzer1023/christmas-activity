@@ -1,24 +1,32 @@
 import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text, Float } from '@react-three/drei';
+import { Text, Float, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Tile, TileType } from '../types/game';
 import { BOARD_SIZE } from '../utils/gameUtils';
 
 const BOARD_INNER_RADIUS = 5;
 const BOARD_OUTER_RADIUS = 7.5;
-const BOARD_THICKNESS = 0.5;
-const ANGLE_GAP = 0.05; // Gap between tiles in radians
+const BOARD_THICKNESS = 0.4;
+const ANGLE_GAP = 0.06;
 
-// Colors for tile types with neon glow support
-const TILE_COLORS: Record<TileType, string> = {
-    random: '#FFD700', // Gold
-    queue_draw: '#ef4444', // Red (visually appears as red, triggers queue draw)
-    skip: '#3b82f6', // Blue (visually appears as blue, triggers skip)
-    reroll: '#22c55e', // Green
+// Dark base colors for tile bodies
+const TILE_BASE_COLORS: Record<TileType, string> = {
+    random: '#1a1508',      // Dark gold/brown
+    queue_draw: '#0a0a18',  // Dark red (queue_draw = RED)
+    skip: '#180808',        // Dark blue (skip = BLUE)
+    reroll: '#081208',      // Dark green
 };
 
-// --- Custom Geometry for Arcs ---
+// Bright neon glow colors for edges
+const TILE_GLOW_COLORS: Record<TileType, string> = {
+    random: '#ffd700',      // Gold
+    queue_draw: '#ff4444',  // Red (queue_draw = RED)
+    skip: '#00bfff',        // Cyan blue (skip = BLUE)
+    reroll: '#00ff88',      // Green
+};
+
+// Create arc shape for the tile body
 const createArcShape = (
     innerRadius: number,
     outerRadius: number,
@@ -26,83 +34,150 @@ const createArcShape = (
     endAngle: number
 ) => {
     const shape = new THREE.Shape();
-
-    // Draw arc segment
     shape.absarc(0, 0, innerRadius, startAngle, endAngle, false);
-    shape.absarc(0, 0, outerRadius, endAngle, startAngle, true); // Go back in reverse
-
+    shape.absarc(0, 0, outerRadius, endAngle, startAngle, true);
     return shape;
 };
 
-const ArcTile = ({ tile, totalTiles }: { tile: Tile; isTarget: boolean; totalTiles: number }) => {
-    // Note: isTarget prop removed from usage to prevent animation, but kept in signature if needed later or passed
-    // Actually, let's keep it in signature but ignore it effectively for animation.
+// Generate points for the outline path (for Line component)
+const createOutlinePoints = (
+    innerRadius: number,
+    outerRadius: number,
+    startAngle: number,
+    endAngle: number,
+    segments: number = 16
+): THREE.Vector3[] => {
+    const points: THREE.Vector3[] = [];
+    
+    // Inner arc (from start to end)
+    for (let i = 0; i <= segments; i++) {
+        const angle = startAngle + (endAngle - startAngle) * (i / segments);
+        points.push(new THREE.Vector3(
+            innerRadius * Math.cos(angle),
+            innerRadius * Math.sin(angle),
+            0
+        ));
+    }
+    
+    // Right edge (from inner to outer at endAngle)
+    points.push(new THREE.Vector3(
+        outerRadius * Math.cos(endAngle),
+        outerRadius * Math.sin(endAngle),
+        0
+    ));
+    
+    // Outer arc (from end to start)
+    for (let i = segments; i >= 0; i--) {
+        const angle = startAngle + (endAngle - startAngle) * (i / segments);
+        points.push(new THREE.Vector3(
+            outerRadius * Math.cos(angle),
+            outerRadius * Math.sin(angle),
+            0
+        ));
+    }
+    
+    // Left edge (from outer to inner at startAngle) - close the loop
+    points.push(new THREE.Vector3(
+        innerRadius * Math.cos(startAngle),
+        innerRadius * Math.sin(startAngle),
+        0
+    ));
+    
+    return points;
+};
 
+const ArcTile = ({ tile, totalTiles }: { tile: Tile; isTarget: boolean; totalTiles: number }) => {
     const segments = totalTiles;
     const anglePerSegment = (Math.PI * 2) / segments;
-
-    // Calculate precise start/end angles for this segment
-    // Let's standardise: Index 0 at -90deg (bottom)
     const baseAngle = (tile.index / segments) * Math.PI * 2 - Math.PI / 2;
-
     const halfAngle = (anglePerSegment - ANGLE_GAP) / 2;
+
+    const baseColor = TILE_BASE_COLORS[tile.type];
+    const glowColor = TILE_GLOW_COLORS[tile.type];
 
     const shape = useMemo(() =>
         createArcShape(BOARD_INNER_RADIUS, BOARD_OUTER_RADIUS, -halfAngle, halfAngle),
-        []);
+        [halfAngle]);
+
+    const outlinePoints = useMemo(() =>
+        createOutlinePoints(BOARD_INNER_RADIUS, BOARD_OUTER_RADIUS, -halfAngle, halfAngle, 24),
+        [halfAngle]);
 
     const extrudeSettings = useMemo(() => ({
         depth: BOARD_THICKNESS,
         bevelEnabled: true,
-        bevelThickness: 0.1,
-        bevelSize: 0.1,
-        bevelSegments: 2
+        bevelThickness: 0.02,
+        bevelSize: 0.02,
+        bevelSegments: 1
     }), []);
 
-    const color = TILE_COLORS[tile.type];
-
-    // NO useFrame animation here anymore as per user request.
-
     return (
-        <group
-            rotation={[-Math.PI / 2, 0, baseAngle]} // Rotate flat on X, then around Z
-        >
-            {/* Main Tile Body - Premium Glassmorphism */}
-            <mesh position={[0, 0, 0]}>
-                <extrudeGeometry args={[shape, extrudeSettings]} />
-                <meshPhysicalMaterial
-                    color={color}
+        <group rotation={[-Math.PI / 2, 0, baseAngle]}>
+            {/* Outer glow bloom (largest, most diffuse) */}
+            <mesh position={[0, 0, -0.03]}>
+                <extrudeGeometry args={[shape, { depth: BOARD_THICKNESS + 0.06, bevelEnabled: false }]} />
+                <meshBasicMaterial
+                    color={glowColor}
                     transparent
-                    opacity={0.6} // Semi-transparent body
-                    roughness={0.2} // Smooth glass
-                    metalness={0.1}
-                    transmission={0.6} // Key for glass look
-                    thickness={0.5} // Refraction volume
-                    ior={1.5}
-                    clearcoat={1} // Shiny coating
-                    clearcoatRoughness={0.1}
-                    attenuationColor={color} // Deep internal color
-                    attenuationDistance={1}
+                    opacity={0.12}
+                    toneMapped={false}
+                    blending={THREE.AdditiveBlending}
                 />
             </mesh>
 
-            {/* Neon Glow Rim (Stronger, thicker outline) */}
-            <mesh position={[0, 0, -0.02]}>
-                <extrudeGeometry args={[shape, { ...extrudeSettings, depth: BOARD_THICKNESS + 0.04, bevelSize: 0.2 }]} />
-                <meshBasicMaterial color={color} toneMapped={false} />
+            {/* Dark Base Tile Body */}
+            <mesh position={[0, 0, 0]}>
+                <extrudeGeometry args={[shape, extrudeSettings]} />
+                <meshStandardMaterial
+                    color={baseColor}
+                    roughness={0.85}
+                    metalness={0.15}
+                    emissive={glowColor}
+                    emissiveIntensity={0.03}
+                />
             </mesh>
 
-            {/* Inner "Frost" / Gradient simulation (Bottom Layer) */}
-            <mesh position={[0, 0, 0.01]}>
-                <extrudeGeometry args={[shape, { ...extrudeSettings, depth: 0.1, bevelSize: 0 }]} />
-                <meshBasicMaterial color={color} opacity={0.3} transparent />
+            {/* Inner color wash */}
+            <mesh position={[0, 0, 0.02]}>
+                <extrudeGeometry args={[shape, { depth: BOARD_THICKNESS - 0.04, bevelEnabled: false }]} />
+                <meshBasicMaterial
+                    color={glowColor}
+                    transparent
+                    opacity={0.1}
+                />
             </mesh>
 
-            {/* Top Surface Specular Highlight (Rim Light) */}
-            <mesh position={[0, 0, BOARD_THICKNESS - 0.02]}>
-                <extrudeGeometry args={[shape, { ...extrudeSettings, depth: 0.05, bevelSize: 0.05 }]} />
-                <meshBasicMaterial color="white" opacity={0.4} transparent blending={THREE.AdditiveBlending} />
-            </mesh>
+            {/* Primary neon edge - bottom */}
+            <group position={[0, 0, 0.02]}>
+                <Line
+                    points={outlinePoints}
+                    color={glowColor}
+                    lineWidth={4}
+                    toneMapped={false}
+                />
+            </group>
+
+            {/* Primary neon edge - top */}
+            <group position={[0, 0, BOARD_THICKNESS]}>
+                <Line
+                    points={outlinePoints}
+                    color={glowColor}
+                    lineWidth={4}
+                    toneMapped={false}
+                />
+            </group>
+
+            {/* Extra glow line layer for bloom effect */}
+            <group position={[0, 0, BOARD_THICKNESS / 2]}>
+                <Line
+                    points={outlinePoints}
+                    color={glowColor}
+                    lineWidth={6}
+                    transparent
+                    opacity={0.4}
+                    toneMapped={false}
+                />
+            </group>
         </group>
     );
 };
@@ -110,53 +185,66 @@ const ArcTile = ({ tile, totalTiles }: { tile: Tile; isTarget: boolean; totalTil
 const PlayerToken = ({ positionIndex }: { positionIndex: number }) => {
     const group = useRef<THREE.Group>(null);
 
-    // Recalculate position based on new geometry logic
     const radius = (BOARD_INNER_RADIUS + BOARD_OUTER_RADIUS) / 2;
     const angle = (positionIndex / BOARD_SIZE) * 2 * Math.PI - Math.PI / 2;
 
     const targetPos = useMemo(() => new THREE.Vector3(
         radius * Math.cos(angle),
-        BOARD_THICKNESS + 0.5, // Sit on top
+        BOARD_THICKNESS + 0.6,
         radius * Math.sin(angle)
     ), [positionIndex, radius, angle]);
 
-    // Smooth movement
     useFrame((_, delta) => {
         if (group.current) {
             group.current.position.lerp(targetPos, delta * 3);
-            // Bob
             group.current.rotation.y += delta * 0.5;
         }
     });
 
     return (
         <group ref={group} position={targetPos}>
-            <Float speed={2} rotationIntensity={0.2} floatIntensity={0.2} floatingRange={[0, 0.2]}>
-                {/* Detailed Snow Globe */}
-                {/* Glass */}
-                <mesh position={[0, 0.6, 0]}>
-                    <sphereGeometry args={[0.7, 32, 32]} />
+            <Float speed={2} rotationIntensity={0.2} floatIntensity={0.3} floatingRange={[0, 0.15]}>
+                {/* Snow Globe Glass Dome */}
+                <mesh position={[0, 0.55, 0]}>
+                    <sphereGeometry args={[0.6, 32, 32]} />
                     <meshPhysicalMaterial
-                        color="white"
-                        transmission={0.9}
+                        color="#a8d8ff"
+                        transmission={0.92}
                         opacity={1}
-                        roughness={0}
-                        ior={1.5}
-                        thickness={0.05}
+                        roughness={0.05}
+                        ior={1.45}
+                        thickness={0.08}
+                        clearcoat={1}
+                        clearcoatRoughness={0}
                     />
                 </mesh>
 
-                {/* Base */}
+                {/* Inner glow */}
+                <pointLight position={[0, 0.5, 0]} intensity={0.5} color="#ffffff" distance={2} />
+
+                {/* Ornate Gold Base */}
                 <mesh position={[0, 0, 0]}>
-                    <cylinderGeometry args={[0.6, 0.7, 0.3, 32]} />
-                    <meshStandardMaterial color="#b8860b" metalness={0.8} roughness={0.3} />
+                    <cylinderGeometry args={[0.5, 0.58, 0.25, 32]} />
+                    <meshStandardMaterial 
+                        color="#8b6914" 
+                        metalness={0.9} 
+                        roughness={0.2}
+                        emissive="#3a2a00"
+                        emissiveIntensity={0.3}
+                    />
+                </mesh>
+
+                {/* Base ring detail */}
+                <mesh position={[0, 0.12, 0]}>
+                    <torusGeometry args={[0.48, 0.03, 16, 32]} />
+                    <meshStandardMaterial color="#ffd700" metalness={1} roughness={0.1} />
                 </mesh>
             </Float>
 
-            {/* Shadow Blob */}
-            <mesh position={[0, -0.2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                <circleGeometry args={[0.6, 32]} />
-                <meshBasicMaterial color="black" opacity={0.4} transparent />
+            {/* Soft shadow */}
+            <mesh position={[0, -0.3, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                <circleGeometry args={[0.7, 32]} />
+                <meshBasicMaterial color="#000" opacity={0.5} transparent />
             </mesh>
         </group>
     );
@@ -168,27 +256,73 @@ interface ThreeBoardProps {
 }
 
 const ThreeBoard: React.FC<ThreeBoardProps> = ({ board, tokenPosition }) => {
+    const centerGlowRef = useRef<THREE.Mesh>(null);
+    
+    // Subtle pulsing animation for center glow
+    useFrame((state) => {
+        if (centerGlowRef.current) {
+            const material = centerGlowRef.current.material as THREE.MeshBasicMaterial;
+            material.opacity = 0.15 + Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
+        }
+    });
+
     return (
-        <group rotation={[-Math.PI / 12, 0, 0]}> {/* Slight tilt to entire board for better view */}
-            {/* Central Glow/Decor */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
-                <ringGeometry args={[0, BOARD_INNER_RADIUS - 0.2, 64]} />
-                <meshBasicMaterial color="#000" opacity={0.5} transparent />
+        <group rotation={[-Math.PI / 12, 0, 0]}>
+            {/* Deep center void */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, 0]}>
+                <circleGeometry args={[BOARD_INNER_RADIUS - 0.3, 64]} />
+                <meshBasicMaterial color="#000000" />
             </mesh>
 
-            {/* Text in Center */}
+            {/* Subtle radial gradient glow in center */}
+            <mesh ref={centerGlowRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.12, 0]}>
+                <ringGeometry args={[0, BOARD_INNER_RADIUS - 0.4, 64]} />
+                <meshBasicMaterial 
+                    color="#1a1a3a" 
+                    transparent 
+                    opacity={0.2}
+                />
+            </mesh>
+
+            {/* Inner ring glow */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.08, 0]}>
+                <ringGeometry args={[BOARD_INNER_RADIUS - 0.5, BOARD_INNER_RADIUS - 0.2, 64]} />
+                <meshBasicMaterial 
+                    color="#ffd700" 
+                    transparent 
+                    opacity={0.08}
+                    blending={THREE.AdditiveBlending}
+                />
+            </mesh>
+
+            {/* Center Text - CHRISTMAS */}
             <Text
-                position={[0, 0, 0]}
-                rotation={[-Math.PI / 2, 0, 0]} // Lay flat
-                fontSize={1}
-                color="#FFD700"
-                font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff"
+                position={[0, 0.02, 0.3]}
+                rotation={[-Math.PI / 2, 0, 0]}
+                fontSize={1.1}
+                color="#ffd700"
                 anchorX="center"
                 anchorY="middle"
+                letterSpacing={0.12}
             >
                 CHRISTMAS
             </Text>
 
+            {/* Text glow effect */}
+            <Text
+                position={[0, 0.01, 0.3]}
+                rotation={[-Math.PI / 2, 0, 0]}
+                fontSize={1.15}
+                color="#ffd700"
+                anchorX="center"
+                anchorY="middle"
+                letterSpacing={0.12}
+                fillOpacity={0.3}
+            >
+                CHRISTMAS
+            </Text>
+
+            {/* Board Tiles */}
             {board.map((tile) => (
                 <ArcTile
                     key={tile.id}
@@ -198,7 +332,7 @@ const ThreeBoard: React.FC<ThreeBoardProps> = ({ board, tokenPosition }) => {
                 />
             ))}
 
-            {/* Player Token Layer */}
+            {/* Player Token */}
             <PlayerToken positionIndex={tokenPosition} />
         </group>
     );
