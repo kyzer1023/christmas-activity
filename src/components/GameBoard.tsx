@@ -4,6 +4,7 @@ import { OrbitControls, Stars, Environment, PerspectiveCamera, Html } from '@rea
 import { useGame } from '../context/GameContext';
 import ThreeBoard from './ThreeBoard';
 import Legend from './Legend';
+import Snowfall from './Snowfall';
 
 // Loading overlay displayed outside the canvas
 const LoadingOverlay: React.FC<{ visible: boolean }> = ({ visible }) => {
@@ -121,6 +122,9 @@ const SceneContent: React.FC<{
             {/* Environment & Background */}
             <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
             <Environment preset="night" blur={0.6} />
+
+            {/* Continuous Snowfall */}
+            <Snowfall count={1500} area={40} speed={0.015} />
 
             {/* Game Board */}
             <ThreeBoard board={board} tokenPosition={tokenPosition} />
