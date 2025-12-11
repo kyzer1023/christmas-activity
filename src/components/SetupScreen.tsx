@@ -153,7 +153,6 @@ const SetupScreen: React.FC = () => {
                         <input
                             type="number"
                             min="2"
-                            max="50"
                             value={count}
                             onChange={(e) => setCount(Number(e.target.value))}
                             style={{
